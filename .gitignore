@@ -1,0 +1,1 @@
+.coverage\n__pycache__/\n*.pyc\nvenv/\n.venv/\n*.egg-info/\ndist/\nbuild/\n.pytest_cache/\ncoverage.xml\nbandit-report.json
