@@ -1,0 +1,10 @@
+workflow-aggregator:latest
+git:latest
+pipeline-stage-view:latest
+sonar:latest
+configuration-as-code:latest
+credentials-binding:latest
+pipeline-utility-steps:latest
+timestamper:latest
+ansicolor:latest
+warnings-ng:latest

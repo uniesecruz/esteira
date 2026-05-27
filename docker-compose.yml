@@ -1,0 +1,104 @@
+version: "3.9"
+
+services:
+  # ============================================================
+  # SonarQube - Code Quality & Security Analysis
+  # ============================================================
+  sonarqube:
+    image: sonarqube:10-community
+    container_name: esteira-sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - esteira-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/api/system/status | grep -q UP"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ============================================================
+  # Jenkins - CI/CD Pipeline with Databricks Integration
+  # ============================================================
+  jenkins:
+    build:
+      context: ./docker/jenkins
+      dockerfile: Dockerfile
+    container_name: esteira-jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - DATABRICKS_HOST=${DATABRICKS_HOST}
+      - DATABRICKS_TOKEN=${DATABRICKS_TOKEN}
+      - SONARQUBE_URL=http://sonarqube:9000
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - esteira-network
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+
+  # ============================================================
+  # SonarQube Scanner - Run analysis on the project
+  # ============================================================
+  sonar-scanner:
+    image: sonarsource/sonar-scanner-cli:5
+    container_name: esteira-sonar-scanner
+    environment:
+      - SONAR_HOST_URL=http://sonarqube:9000
+      - SONAR_TOKEN=${SONAR_TOKEN:-}
+    volumes:
+      - ./:/usr/src
+    working_dir: /usr/src
+    networks:
+      - esteira-network
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+    profiles:
+      - scan
+
+  # ============================================================
+  # Fortify SCA - Static Code Analyzer (requires license)
+  # This service provides the structure for Fortify integration.
+  # A valid Fortify license and installation files are required.
+  # ============================================================
+  fortify:
+    build:
+      context: ./docker/fortify
+      dockerfile: Dockerfile
+    container_name: esteira-fortify
+    environment:
+      - FORTIFY_LICENSE_PATH=/opt/fortify/license/fortify.license
+      - FORTIFY_SSC_URL=${FORTIFY_SSC_URL:-}
+      - FORTIFY_SSC_TOKEN=${FORTIFY_SSC_TOKEN:-}
+    volumes:
+      - ./:/usr/src/app
+      - fortify_data:/opt/fortify/data
+    working_dir: /usr/src/app
+    networks:
+      - esteira-network
+    profiles:
+      - fortify
+
+volumes:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  jenkins_data:
+  fortify_data:
+
+networks:
+  esteira-network:
+    driver: bridge

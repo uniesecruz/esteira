@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+coverage.xml
+test-results.xml
+
+# Security reports
+bandit-report.json
+fortify-results.fpr
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker
+docker-compose.override.yml
